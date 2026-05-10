@@ -35,3 +35,16 @@ def delete_function(id: int):
         raise HTTPException(status_code=404, detail="Entry not found")
     save_entries(entries)
     return entries
+
+
+@app.put("/entries/{id}")
+def put_function(id: int, entry: Entry):
+    entries = load_entries()
+    for e in entries:
+        if id == e["id"]:
+            e["content"] = entry.content
+            break
+    else:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    save_entries(entries)
+    return entries
