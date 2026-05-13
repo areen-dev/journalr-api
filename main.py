@@ -1,50 +1,57 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from storage import load_entries, save_entries
+from database import Base, engine, get_db
+from models import Entry
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
-class Entry(BaseModel):
+class EntryCreate(BaseModel):
     content: str
 
 
-@app.get("/entries")
-def get_function():
-    return load_entries()
+class EntryResponse(BaseModel):
+    id: int
+    content: str
+
+    class Config:
+        from_attributes = True
 
 
-@app.post("/entries")
-def post_function(entry: Entry):
-    entries = load_entries()
-    new_entries = {"id": len(entries) + 1, "content": entry.content}
-    entries.append(new_entries)
-    save_entries(entries)
-    return new_entries
+@app.get("/entries", response_model=list[EntryResponse])
+def get_function(db=Depends(get_db)):
+    content = db.query(Entry).all()
+    return content
+
+
+@app.post("/entries", response_model=EntryResponse)
+def post_function(entry: EntryCreate, db=Depends(get_db)):
+    new_entry = Entry(content=entry.content)
+    db.add(new_entry)
+    db.commit()
+    db.refresh(new_entry)
+    return new_entry
 
 
 @app.delete("/entries/{id}")
-def delete_function(id: int):
-    entries = load_entries()
-    for entry in entries:
-        if id == entry["id"]:
-            entries.remove(entry)
-            break
-    else:
+def delete_function(id: int, db=Depends(get_db)):
+    entry = db.query(Entry).filter(Entry.id == id).first()
+    if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
-    save_entries(entries)
-    return entries
+    db.delete(entry)
+    db.commit()
+    return entry
 
 
-@app.put("/entries/{id}")
-def put_function(id: int, entry: Entry):
-    entries = load_entries()
-    for e in entries:
-        if id == e["id"]:
-            e["content"] = entry.content
-            break
-    else:
+@app.put("/entries/{id}", response_model=EntryResponse)
+def put_function(id: int, entry: EntryCreate, db=Depends(get_db)):
+    db_entry = db.query(Entry).filter(Entry.id == id).first()
+    if db_entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
-    save_entries(entries)
-    return entries
+    db_entry.content = entry.content
+    db.commit()
+    db.refresh(db_entry)
+    return db_entry
