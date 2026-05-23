@@ -22,13 +22,13 @@ class EntryResponse(BaseModel):
 
 
 @app.get("/entries", response_model=list[EntryResponse])
-def get_function(db=Depends(get_db)):
+async def get_function(db=Depends(get_db)):
     content = db.query(Entry).all()
     return content
 
 
 @app.post("/entries", response_model=EntryResponse)
-def post_function(entry: EntryCreate, db=Depends(get_db)):
+async def post_function(entry: EntryCreate, db=Depends(get_db)):
     new_entry = Entry(content=entry.content)
     db.add(new_entry)
     db.commit()
@@ -37,7 +37,7 @@ def post_function(entry: EntryCreate, db=Depends(get_db)):
 
 
 @app.delete("/entries/{id}")
-def delete_function(id: int, db=Depends(get_db)):
+async def delete_function(id: int, db=Depends(get_db)):
     entry = db.query(Entry).filter(Entry.id == id).first()
     if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -47,7 +47,7 @@ def delete_function(id: int, db=Depends(get_db)):
 
 
 @app.put("/entries/{id}", response_model=EntryResponse)
-def put_function(id: int, entry: EntryCreate, db=Depends(get_db)):
+async def put_function(id: int, entry: EntryCreate, db=Depends(get_db)):
     db_entry = db.query(Entry).filter(Entry.id == id).first()
     if db_entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
