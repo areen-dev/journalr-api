@@ -3,10 +3,12 @@ from pydantic import BaseModel
 
 from database import Base, engine, get_db
 from models import Entry
+from auth import router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+app.include_router(router)
 
 
 class EntryCreate(BaseModel):
