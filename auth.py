@@ -43,3 +43,8 @@ def register(user: UserCreate, db=Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+@router.post("/login")
+def login(user: UserCreate, db=Depends(get_db)):
+    pass
