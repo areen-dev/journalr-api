@@ -47,4 +47,10 @@ def register(user: UserCreate, db=Depends(get_db)):
 
 @router.post("/login")
 def login(user: UserCreate, db=Depends(get_db)):
-    pass
+    db_entry = db.query(User).filter(User.username == user.username).first()
+    if db_entry is None:
+        raise HTTPException(status_code=404, detail="Username not found")
+    user_pass = verify_password(user.password, db_entry.hashed_password)
+    if user_pass is not True:
+        raise HTTPException(status_code=401, detail="password does not match")
+    return create_token({"username": db_entry.username})
