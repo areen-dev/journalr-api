@@ -1,9 +1,9 @@
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
+from auth import router
 from database import Base, engine, get_db
 from models import Entry
-from auth import router
 
 Base.metadata.create_all(bind=engine)
 

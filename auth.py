@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
-from jose import jwt
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWSError, jwt
 from passlib.context import CryptContext
 
 from database import get_db
@@ -15,6 +16,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key")
 ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 def hash_password(password: str) -> str:
@@ -54,3 +56,12 @@ def login(user: UserCreate, db=Depends(get_db)):
     if user_pass is not True:
         raise HTTPException(status_code=401, detail="password does not match")
     return create_token({"username": db_entry.username})
+
+
+@router.get("/protected")
+def protected_route(token: str = Depends(oauth2_scheme)):
+    try:
+        jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWSError:
+        raise HTTPException(status_code=498, detail="invalid jwt token")
+    return {"message": "Access granted"}
